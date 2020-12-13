@@ -109,7 +109,7 @@ select,
 textarea,
 button {
   padding: 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.5;
   border: 0.1 rem #a4a4a4 solid;
   font-size: 1.6rem;
   font-family: Arial, Helvetica, sans-serif;
