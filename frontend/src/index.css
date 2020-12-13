@@ -216,7 +216,7 @@ color: #404040;
 .form > div {
   display: flex;
   flex-direction: column;
-  margin: 1rem 0;
+  margin: 1rem;
 }
 .form label{
   margin: 1rem 0;
