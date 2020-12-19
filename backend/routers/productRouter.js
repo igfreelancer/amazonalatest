@@ -2,17 +2,38 @@ import express from "express";
 import expressAsyncHandler from "express-async-handler";
 import data from "../data.js";
 import Product from "../models/productModels.js";
-import { isAuth, isAdmin } from "../utils.js";
+import { isAuth, isAdmin, isSellerOrAdmin } from "../utils.js";
 
 const productRouter = express.Router();
 
 productRouter.get(
   "/",
   expressAsyncHandler(async (req, res) => {
-    const products = await Product.find({});
+    const seller = req.query.seller || '';
+    const name = req.query.name || "";
+    const category = req.query.category || "";
+    const min = req.query.min && Number(req.query.min) !== 0? Number(req.query.min): 0;
+    const max =
+      req.query.max && Number(req.query.max) !== 0 ? Number(req.query.max) : 0;
+    const nameFilter = name ? { name: {$regex: name, $options: 'i'} } : {};
+    const sellerFilter = seller? {seller}: {};
+    const categoryFilter = category ? { category } : {};
+    const priceFilter = min && max ? {price: {$gte: min, $lte: max}}:{};
+    const products = await Product.find({
+      ...sellerFilter,
+      ...nameFilter,
+      ...categoryFilter,
+      ...priceFilter,
+    }).populate("seller", "seller.name seller.logo");
     res.send(products);
   })
 );
+
+productRouter.get('/categories', expressAsyncHandler(async (req, res)=>{
+  const categories = await Product.find().distinct('category');
+  res.send(categories);
+}))
+
 
 productRouter.get(
   "/seed",
@@ -25,7 +46,10 @@ productRouter.get(
 productRouter.get(
   "/:id",
   expressAsyncHandler(async (req, res) => {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id).populate(
+      "seller",
+      "seller.name seller.logo seller.rating seller.numReviews"
+    );
     if (product) {
       res.send(product);
     } else {
@@ -36,10 +60,11 @@ productRouter.get(
 productRouter.post(
   "/",
   isAuth,
-  isAdmin,
+  isSellerOrAdmin,
   expressAsyncHandler(async (req, res) => {
     const product = new Product({
       name: "sample name" + Date.now(),
+      seller: req.user._id,
       image: "/images/p1.jpg",
       price: 0,
       category: "sample category",
@@ -57,7 +82,7 @@ productRouter.post(
 productRouter.put(
   "/:id",
   isAuth,
-  isAdmin,
+  isSellerOrAdmin,
   expressAsyncHandler(async (req, res) => {
     const productId = req.params.id;
     const product = await Product.findById(productId);
